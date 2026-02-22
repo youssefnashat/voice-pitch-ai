@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/hooks/useSession";
@@ -83,16 +83,8 @@ export function PitchRoom() {
   const handleStartPitch = useCallback(async () => {
     setScorecard(null);
     setShowRoom(true);
-    // Small delay for room animation
     setTimeout(() => session.startPitch(), 1200);
   }, [session]);
-
-  // Auto-start when arriving from select screen
-  useEffect(() => {
-    if (session.phase === "landing") {
-      handleStartPitch();
-    }
-  }, [handleStartPitch, session.phase]);
 
   const handleEndTurn = useCallback(async () => {
     await session.submitTurn();
@@ -108,6 +100,58 @@ export function PitchRoom() {
     setShowRoom(false);
     session.reset();
   }, [session]);
+
+  // ── Landing / Pre-pitch View ──
+  if (!showRoom && session.phase === "landing") {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(0, 245, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 255, 0.3) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative z-10 flex flex-col items-center gap-8 text-center px-6"
+        >
+          <MarcusAvatar isSpeaking={false} isListening={false} isProcessing={false} />
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              {agentId === "marcus" ? "Marcus Chen" : "Mystery Investor"}
+            </h2>
+            <p className="text-text-muted text-sm max-w-md">
+              Your mic will be activated when you start. Make sure to allow microphone access when prompted.
+            </p>
+          </div>
+          <button
+            onClick={handleStartPitch}
+            className="grain-hover px-10 py-4 rounded-xl font-mono text-sm tracking-[0.15em] uppercase font-bold transition-all duration-300 cursor-pointer"
+            style={{
+              background: "rgba(0, 245, 255, 0.1)",
+              border: "1px solid rgba(0, 245, 255, 0.35)",
+              color: "#00F5FF",
+              boxShadow: "0 0 30px rgba(0, 245, 255, 0.1)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = "0 0 40px rgba(0, 245, 255, 0.25)";
+              e.currentTarget.style.borderColor = "rgba(0, 245, 255, 0.6)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 245, 255, 0.1)";
+              e.currentTarget.style.borderColor = "rgba(0, 245, 255, 0.35)";
+            }}
+          >
+            Start Pitch
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   // ── Scorecard View ──
   if (scorecard) {
@@ -259,6 +303,22 @@ export function PitchRoom() {
                 )}
               </AnimatePresence>
             </motion.div>
+
+            {/* Mic error banner */}
+            <AnimatePresence>
+              {session.sttError && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  <span className="font-mono text-[11px] tracking-wider">
+                    {session.sttError}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Silence warning banner */}
             <AnimatePresence>

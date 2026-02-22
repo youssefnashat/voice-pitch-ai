@@ -113,18 +113,24 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
     };
 
     recognition.onerror = (e: any) => {
+      if (e.error === "not-allowed") {
+        console.error("[STT] Microphone access denied");
+        setState("error");
+        setError("Microphone blocked — allow it in browser site settings");
+        fallbackRef.current = null;
+        return;
+      }
       if (e.error !== "no-speech" && e.error !== "aborted") {
-        console.error("Fallback STT error:", e.error);
+        console.error("[STT] Fallback error:", e.error);
       }
     };
 
     recognition.onend = () => {
-      // Auto-restart if still supposed to be listening (use ref to avoid stale closure)
       if (stateRef.current === "listening" && fallbackRef.current) {
         try {
           recognition.start();
         } catch {
-          // Already started
+          // Already started or blocked
         }
       }
     };
@@ -227,19 +233,30 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
         setUsingFallback(false);
         await startSmallestSTT();
         return;
-      } catch (err) {
-        console.warn("Smallest STT failed, falling back:", err);
-        // Clean up any partial resources (stream, audioContext, ws) before fallback
+      } catch (err: any) {
         cleanup();
+        if (err?.name === "NotAllowedError" || err?.message?.includes("not-allowed")) {
+          console.error("[STT] Microphone access denied");
+          setState("error");
+          setError("Microphone blocked — allow it in browser site settings");
+          return;
+        }
+        console.warn("[STT] Smallest STT failed, falling back:", err);
       }
     }
 
     // Fallback to browser STT
     setUsingFallback(true);
     if (setupFallbackSTT()) {
-      stateRef.current = "listening"; // Update ref synchronously for onend auto-restart
+      stateRef.current = "listening";
       setState("listening");
-      fallbackRef.current.start();
+      try {
+        fallbackRef.current.start();
+      } catch {
+        setState("error");
+        setError("Microphone blocked — allow it in browser site settings");
+        return;
+      }
       resetSilenceTimers();
     } else {
       setState("error");

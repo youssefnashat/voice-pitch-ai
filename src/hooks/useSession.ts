@@ -100,18 +100,22 @@ export function useSession() {
   }, [stt]);
 
   const submitTurn = useCallback(async () => {
-    const userText = stt.transcript.trim();
-    if (!userText) return;
+    // Grab finalized text first, fall back to interim if the user clicked
+    // Stop & Send before the STT engine finalized the utterance.
+    const userText = (stt.transcript + " " + stt.interimTranscript).trim();
 
     stt.stopListening();
     setSilenceWarning(false);
     setMarcusThinking("idle");
 
-    // Add user message to transcript + history
+    if (!userText) {
+      console.warn("[chat] nothing to send — transcript was empty");
+      return;
+    }
+
     addTranscriptEntry("user", userText, false);
     addHistoryEntry("user", userText);
 
-    // LLM call with timeout tracking
     let thinkingTimer: ReturnType<typeof setTimeout> | null = null;
     let stallingTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -124,6 +128,7 @@ export function useSession() {
     }, VOICE_CONFIG.TIMEOUTS.LLM_STALL);
 
     try {
+      console.log("[chat] sending to backend:", userText);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,19 +142,18 @@ export function useSession() {
       if (stallingTimer) clearTimeout(stallingTimer);
       setMarcusThinking("idle");
 
-      if (!response.ok) throw new Error("Chat API failed");
+      if (!response.ok) throw new Error(`Chat API failed (${response.status})`);
 
-      const { agentText } = await response.json();
-      const text = agentText || "That's interesting. Let me think about that.";
+      const data = await response.json();
+      const text = data.agentText || "That's interesting. Let me think about that.";
+      console.log("[chat] response:", text.slice(0, 80));
 
       addHistoryEntry("assistant", text);
       addTranscriptEntry("investor", text, false);
       recordExchange();
 
-      // Speak the response via ElevenLabs TTS
       await tts.speak(text);
 
-      // Resume listening if not in scorecard
       if (phaseRef.current !== "scorecard") {
         stt.reset();
         await stt.startListening();
@@ -159,7 +163,7 @@ export function useSession() {
       if (stallingTimer) clearTimeout(stallingTimer);
       setMarcusThinking("idle");
 
-      console.error("Turn error:", err);
+      console.error("[chat] turn error:", err);
       const fallback =
         STALL_MESSAGES[Math.floor(Math.random() * STALL_MESSAGES.length)];
       addTranscriptEntry("investor", fallback, false);
@@ -222,6 +226,7 @@ export function useSession() {
     interimTranscript: stt.interimTranscript,
     isListening: stt.state === "listening",
     sttState: stt.state,
+    sttError: stt.error,
     usingFallbackSTT: stt.usingFallback,
 
     // TTS state

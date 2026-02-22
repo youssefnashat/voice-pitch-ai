@@ -1,7 +1,15 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+if (!process.env.NEXTAUTH_SECRET) {
+  console.error("[auth] NEXTAUTH_SECRET is not set — sessions will not work");
+}
+if (!process.env.NEXTAUTH_URL) {
+  console.error("[auth] NEXTAUTH_URL is not set — callbacks may fail");
+}
+
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -10,20 +18,16 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // This is a mock authorize function for now.
-        // In a real app, you would check these against a database.
         if (credentials?.email === "admin@example.com" && credentials?.password === "password") {
           return { id: "1", name: "Admin User", email: "admin@example.com" };
         }
-        
-        // For testing purposes, allow any login for now if needed, 
-        // or return null to fail authentication.
+
         if (credentials?.email && credentials?.password) {
-             return { 
-                id: Math.random().toString(), 
-                name: credentials.email.split('@')[0], 
-                email: credentials.email 
-            };
+          return {
+            id: Math.random().toString(),
+            name: credentials.email.split('@')[0],
+            email: credentials.email,
+          };
         }
 
         return null;

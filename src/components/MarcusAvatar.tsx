@@ -12,6 +12,9 @@ interface MarcusAvatarProps {
 const BAR_COUNT = 48;
 const RING_SEGMENTS = 60;
 
+const safe = (n: number, fallback = 0): number =>
+  Number.isFinite(n) ? n : fallback;
+
 export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAvatarProps) {
   const bars = useMemo(() =>
     Array.from({ length: BAR_COUNT }, (_, i) => ({
@@ -74,22 +77,24 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
           />
           {ringDots.map((dot) => {
             const rad = (dot.angle * Math.PI) / 180;
-            const x = 150 + Math.cos(rad) * 145;
-            const y = 150 + Math.sin(rad) * 145;
+            const x = safe(150 + Math.cos(rad) * 145, 150);
+            const y = safe(150 + Math.sin(rad) * 145, 150);
+            const baseR = dot.id % 6 === 0 ? 1.5 : 0.5;
             return (
               <motion.circle
                 key={dot.id}
                 cx={x}
                 cy={y}
-                r={dot.id % 6 === 0 ? 1.5 : 0.5}
+                r={baseR}
                 fill={dot.id % 6 === 0 ? "rgba(0, 245, 255, 0.4)" : "rgba(0, 245, 255, 0.15)"}
+                initial={{ r: baseR, opacity: 0.4 }}
                 animate={
                   state === "speaking"
                     ? {
                         r: dot.id % 6 === 0 ? [1.5, 3, 1.5] : [0.5, 1.2, 0.5],
                         opacity: [0.4, 1, 0.4],
                       }
-                    : {}
+                    : { r: baseR }
                 }
                 transition={{
                   duration: 0.8,
@@ -129,11 +134,16 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
           {bars.map((bar) => {
             const rad = (bar.angle * Math.PI) / 180;
             const innerR = 40;
-            const x1 = 100 + Math.cos(rad) * innerR;
-            const y1 = 100 + Math.sin(rad) * innerR;
+            const cosR = Math.cos(rad);
+            const sinR = Math.sin(rad);
+            const x1 = safe(100 + cosR * innerR, 100);
+            const y1 = safe(100 + sinR * innerR, 100);
             const outerR = innerR + bar.baseHeight;
-            const x2 = 100 + Math.cos(rad) * outerR;
-            const y2 = 100 + Math.sin(rad) * outerR;
+            const x2 = safe(100 + cosR * outerR, 100);
+            const y2 = safe(100 + sinR * outerR, 100);
+
+            const px = (scale: number) => safe(100 + cosR * (innerR + bar.baseHeight * scale), x2);
+            const py = (scale: number) => safe(100 + sinR * (innerR + bar.baseHeight * scale), y2);
 
             return (
               <motion.line
@@ -151,48 +161,23 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
                 }
                 strokeWidth={state === "speaking" ? 2.5 : 1.5}
                 strokeLinecap="round"
+                initial={{ x2, y2, opacity: 0.15 }}
                 animate={
                   state === "speaking"
                     ? {
-                        x2: [
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * (1.5 + Math.random() * 2)),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * (0.5 + Math.random())),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight),
-                        ],
-                        y2: [
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * (1.5 + Math.random() * 2)),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * (0.5 + Math.random())),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight),
-                        ],
+                        x2: [px(1), px(1.5 + Math.random() * 2), px(0.5 + Math.random()), px(1)],
+                        y2: [py(1), py(1.5 + Math.random() * 2), py(0.5 + Math.random()), py(1)],
                         opacity: [0.6, 1, 0.8, 0.6],
                       }
                     : state === "listening"
                     ? {
-                        x2: [
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * 0.6),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * 1.1),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * 0.6),
-                        ],
-                        y2: [
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * 0.6),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * 1.1),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * 0.6),
-                        ],
+                        x2: [px(0.6), px(1.1), px(0.6)],
+                        y2: [py(0.6), py(1.1), py(0.6)],
                         opacity: [0.3, 0.6, 0.3],
                       }
                     : {
-                        x2: [
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * 0.7),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight),
-                          100 + Math.cos(rad) * (innerR + bar.baseHeight * 0.7),
-                        ],
-                        y2: [
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * 0.7),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight),
-                          100 + Math.sin(rad) * (innerR + bar.baseHeight * 0.7),
-                        ],
+                        x2: [px(0.7), px(1), px(0.7)],
+                        y2: [py(0.7), py(1), py(0.7)],
                         opacity: [0.15, 0.3, 0.15],
                       }
                 }
@@ -210,7 +195,7 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
           <motion.circle
             cx="100"
             cy="100"
-            r="20"
+            r={20}
             fill="none"
             stroke={
               state === "speaking"
@@ -220,6 +205,7 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
                 : "rgba(123, 97, 255, 0.2)"
             }
             strokeWidth="1"
+            initial={{ r: 20, opacity: 0.15 }}
             animate={{
               r: state === "speaking" ? [18, 22, 18] : [19, 21, 19],
               opacity: state === "speaking" ? [0.4, 0.8, 0.4] : [0.15, 0.3, 0.15],
@@ -235,7 +221,7 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
           <motion.circle
             cx="100"
             cy="100"
-            r="4"
+            r={4}
             fill={
               state === "speaking"
                 ? "rgba(0, 245, 255, 0.9)"
@@ -243,6 +229,7 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
                 ? "rgba(0, 255, 178, 0.6)"
                 : "rgba(123, 97, 255, 0.4)"
             }
+            initial={{ r: 4, opacity: 0.6 }}
             animate={{
               r: state === "speaking" ? [3, 6, 3] : [3, 5, 3],
               opacity: [0.6, 1, 0.6],

@@ -74,14 +74,22 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
     };
 
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        console.error("[STT] Microphone access denied");
+        setIsListening(false);
+        onError?.("Microphone blocked — allow it in browser site settings");
+        return;
+      }
+
+      if (event.error !== "no-speech" && event.error !== "aborted") {
+        console.error("[STT] Recognition error:", event.error);
+      }
       onError?.(event.error);
 
-      // Auto-restart logic with max 3 retries
       if (retryCountRef.current < 3) {
         retryCountRef.current++;
         setTimeout(() => {
-          recognition.start();
+          try { recognition.start(); } catch { /* already running */ }
         }, 500);
       } else {
         setIsListening(false);
