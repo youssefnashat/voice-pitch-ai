@@ -10,6 +10,7 @@ import { StatusHUD } from "./StatusHUD";
 import { LiveDeckFeed } from "./LiveDeckFeed";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { Scorecard } from "./Scorecard";
+import { UserCamera } from "./UserCamera";
 
 // Animation timing constants
 const ANIMATION = {
@@ -256,52 +257,58 @@ export function PitchRoom() {
         <div className="flex-1 px-6 pb-6 grid grid-cols-[1fr_320px] gap-5 min-h-0">
           {/* Left: Visualizer + Transcript + Controls */}
           <motion.div variants={slideInLeft} className="flex flex-col gap-5 min-h-0">
-            {/* Marcus Avatar */}
+            {/* Video call tiles */}
             <motion.div
               variants={scaleIn}
-              className="glass-panel rounded-xl flex items-center justify-center py-8 relative scanline"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[360px] md:h-[420px]"
             >
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-cyan/40 to-transparent" />
-              <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-cyan/40 to-transparent" />
-              <div className="absolute top-0 right-0 w-8 h-px bg-gradient-to-l from-cyan/40 to-transparent" />
-              <div className="absolute top-0 right-0 w-px h-8 bg-gradient-to-b from-cyan/40 to-transparent" />
-              <div className="absolute bottom-0 left-0 w-8 h-px bg-gradient-to-r from-purple/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 w-px h-8 bg-gradient-to-t from-purple/30 to-transparent" />
-              <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-purple/30 to-transparent" />
-              <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-purple/30 to-transparent" />
+              {/* Marcus tile */}
+              <div className="glass-panel rounded-xl flex items-center justify-center relative scanline">
+                {/* Corner accents */}
+                <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-cyan/40 to-transparent" />
+                <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-cyan/40 to-transparent" />
+                <div className="absolute top-0 right-0 w-8 h-px bg-gradient-to-l from-cyan/40 to-transparent" />
+                <div className="absolute top-0 right-0 w-px h-8 bg-gradient-to-b from-cyan/40 to-transparent" />
+                <div className="absolute bottom-0 left-0 w-8 h-px bg-gradient-to-r from-purple/30 to-transparent" />
+                <div className="absolute bottom-0 left-0 w-px h-8 bg-gradient-to-t from-purple/30 to-transparent" />
+                <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-purple/30 to-transparent" />
+                <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-purple/30 to-transparent" />
 
-              {/* Name label */}
-              <div className="absolute top-4 left-5 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-cyan" />
-                <span className="font-mono text-[10px] tracking-[0.2em] text-text-muted uppercase">
-                  {agentId === 'marcus' ? 'Marcus Chen' : 'Mystery Investor'} &middot; AI Core
-                </span>
+                {/* Name label */}
+                <div className="absolute top-4 left-5 flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-cyan" />
+                  <span className="font-mono text-[10px] tracking-[0.2em] text-text-muted uppercase">
+                    {agentId === 'marcus' ? 'Marcus Chen' : 'Mystery Investor'} &middot; AI Core
+                  </span>
+                </div>
+
+                <MarcusAvatar
+                  isSpeaking={session.isSpeaking}
+                  isListening={session.isListening && !session.isSpeaking}
+                  isProcessing={isProcessing}
+                />
+
+                {/* Marcus thinking status */}
+                <AnimatePresence>
+                  {session.marcusThinking !== "idle" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute bottom-4 left-0 right-0 text-center"
+                    >
+                      <span className="font-mono text-[11px] tracking-wider text-cyan/70">
+                        {session.marcusThinking === "thinking"
+                          ? "Marcus is thinking..."
+                          : "Marcus is still thinking..."}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <MarcusAvatar
-                isSpeaking={session.isSpeaking}
-                isListening={session.isListening && !session.isSpeaking}
-                isProcessing={isProcessing}
-              />
-
-              {/* Marcus thinking status */}
-              <AnimatePresence>
-                {session.marcusThinking !== "idle" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-4 left-0 right-0 text-center"
-                  >
-                    <span className="font-mono text-[11px] tracking-wider text-cyan/70">
-                      {session.marcusThinking === "thinking"
-                        ? "Marcus is thinking..."
-                        : "Marcus is still thinking..."}
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* You / camera tile */}
+              <UserCamera />
             </motion.div>
 
             {/* Mic error banner */}
