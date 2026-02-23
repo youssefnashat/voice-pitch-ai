@@ -144,6 +144,34 @@ localStorage.setItem('forceElevenTTS', 'false')     // disable ElevenLabs TTS
 
 ---
 
+---
+
+## Supabase Migrations
+
+Run these in the Supabase SQL editor. Use TEXT for user ids (NextAuth Credentials provider returns non-UUID strings).
+
+**If tables don't exist yet:**
+```sql
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id text PRIMARY KEY,
+  username text UNIQUE NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.pitches ADD COLUMN IF NOT EXISTS user_id text;
+ALTER TABLE public.pitches ADD COLUMN IF NOT EXISTS published boolean DEFAULT false;
+ALTER TABLE public.pitches ADD COLUMN IF NOT EXISTS published_at timestamptz;
+ALTER TABLE public.pitches ADD COLUMN IF NOT EXISTS transcript text;
+```
+
+**If you have UUID columns and need to migrate to TEXT:**
+```sql
+ALTER TABLE public.profiles ALTER COLUMN id TYPE text;
+ALTER TABLE public.pitches ALTER COLUMN user_id TYPE text;
+```
+
+---
+
 ## Resources
 
 - **Smallest AI:** https://smallest.ai/docs

@@ -15,16 +15,39 @@ const RING_SEGMENTS = 60;
 const safe = (n: number, fallback = 0): number =>
   Number.isFinite(n) ? n : fallback;
 
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+/**
+ * Seeded PRNG (Mulberry32) for SSR hydration determinism.
+ * Math.random() differs between server and client, causing hydration mismatches.
+ * Using a seed derived from stable ids ensures identical output on SSR and client.
+ */
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAvatarProps) {
-  const bars = useMemo(() =>
-    Array.from({ length: BAR_COUNT }, (_, i) => ({
-      id: i,
-      angle: (i / BAR_COUNT) * 360,
-      baseHeight: 12 + Math.sin(i * 0.5) * 6,
-      delay: i * 0.02,
-    })),
-    []
-  );
+  const bars = useMemo(() => {
+    return Array.from({ length: BAR_COUNT }, (_, i) => {
+      const r = mulberry32(i * 99991 + 1337);
+      return {
+        id: i,
+        angle: (i / BAR_COUNT) * 360,
+        baseHeight: 12 + Math.sin(i * 0.5) * 6,
+        delay: i * 0.02,
+        r1: Number(r().toFixed(6)),
+        r2: Number(r().toFixed(6)),
+        r3: Number(r().toFixed(6)),
+        r4: Number(r().toFixed(6)),
+        rDuration: Number(r().toFixed(6)),
+      };
+    });
+  }, []);
 
   const ringDots = useMemo(() =>
     Array.from({ length: RING_SEGMENTS }, (_, i) => ({
@@ -83,8 +106,8 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
             return (
               <motion.circle
                 key={dot.id}
-                cx={x}
-                cy={y}
+                cx={round3(x)}
+                cy={round3(y)}
                 r={baseR}
                 fill={dot.id % 6 === 0 ? "rgba(0, 245, 255, 0.4)" : "rgba(0, 245, 255, 0.15)"}
                 initial={{ r: baseR, opacity: 0.4 }}
@@ -148,10 +171,10 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
             return (
               <motion.line
                 key={bar.id}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
+                x1={round3(x1)}
+                y1={round3(y1)}
+                x2={round3(x2)}
+                y2={round3(y2)}
                 stroke={
                   state === "speaking"
                     ? "rgba(0, 245, 255, 0.8)"
@@ -165,8 +188,8 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
                 animate={
                   state === "speaking"
                     ? {
-                        x2: [px(1), px(1.5 + Math.random() * 2), px(0.5 + Math.random()), px(1)],
-                        y2: [py(1), py(1.5 + Math.random() * 2), py(0.5 + Math.random()), py(1)],
+                        x2: [px(1), px(1.5 + bar.r1 * 2), px(0.5 + bar.r2), px(1)],
+                        y2: [py(1), py(1.5 + bar.r3 * 2), py(0.5 + bar.r4), py(1)],
                         opacity: [0.6, 1, 0.8, 0.6],
                       }
                     : state === "listening"
@@ -182,7 +205,7 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
                       }
                 }
                 transition={{
-                  duration: state === "speaking" ? 0.3 + Math.random() * 0.4 : state === "listening" ? 2 : 3,
+                  duration: state === "speaking" ? 0.3 + bar.rDuration * 0.4 : state === "listening" ? 2 : 3,
                   delay: bar.delay,
                   repeat: Infinity,
                   ease: state === "speaking" ? "easeOut" : "easeInOut",

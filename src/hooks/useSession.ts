@@ -33,6 +33,19 @@ export function useSession() {
   phaseRef.current = phase;
   const exchangeCountRef = useRef(exchangeCount);
   exchangeCountRef.current = exchangeCount;
+  const pitchStartMsRef = useRef<number | null>(null);
+
+  // Elapsed time timer during pitch
+  useEffect(() => {
+    if (phase === "landing" || phase === "scorecard" || pitchStartMsRef.current == null) return;
+    const tick = () => {
+      if (pitchStartMsRef.current != null) {
+        setElapsedSeconds(Math.floor((Date.now() - pitchStartMsRef.current) / 1000));
+      }
+    };
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
   // Silence event listeners
   useEffect(() => {
@@ -89,6 +102,7 @@ export function useSession() {
   }, []);
 
   const startPitch = useCallback(async () => {
+    pitchStartMsRef.current = Date.now();
     setPhase("pitch");
     setTranscript([]);
     setHistory([]);
@@ -96,6 +110,7 @@ export function useSession() {
     setElapsedSeconds(0);
     setSilenceWarning(false);
     setMarcusThinking("idle");
+    stt.arm();
     await stt.startListening();
   }, [stt]);
 
@@ -180,6 +195,11 @@ export function useSession() {
   const endSession = useCallback(async () => {
     stt.stopListening();
     tts.stop();
+    const durationSeconds =
+      pitchStartMsRef.current != null
+        ? Math.round((Date.now() - pitchStartMsRef.current) / 1000)
+        : 0;
+    setElapsedSeconds(durationSeconds);
     setPhase("scorecard");
     setSilenceWarning(false);
     setMarcusThinking("idle");
@@ -200,6 +220,7 @@ export function useSession() {
   }, [stt, tts, transcript]);
 
   const reset = useCallback(() => {
+    pitchStartMsRef.current = null;
     stt.stopListening();
     stt.reset();
     tts.stop();

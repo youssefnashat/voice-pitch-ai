@@ -10,6 +10,7 @@ interface UseSmallestSTTReturn {
   interimTranscript: string;
   state: STTState;
   error: string | null;
+  arm: () => void;
   startListening: () => Promise<void>;
   stopListening: () => void;
   reset: () => void;
@@ -31,6 +32,13 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
   const [state, setState] = useState<STTState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
+
+  // STT only operates after an explicit user gesture calls arm().
+  const armedRef = useRef(false);
+
+  const arm = useCallback(() => {
+    armedRef.current = true;
+  }, []);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -114,19 +122,27 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
 
     recognition.onerror = (e: any) => {
       if (e.error === "not-allowed") {
-        console.error("[STT] Microphone access denied");
+        console.warn("[STT] Microphone access denied");
         setState("error");
         setError("Microphone blocked — allow it in browser site settings");
         fallbackRef.current = null;
         return;
       }
+      if (e.error === "network") {
+        console.warn("[STT] Network error (non-fatal)");
+        setState("error");
+        setError("Speech recognition unavailable — check your connection");
+        fallbackRef.current = null;
+        return;
+      }
       if (e.error !== "no-speech" && e.error !== "aborted") {
-        console.error("[STT] Fallback error:", e.error);
+        console.warn("[STT] Fallback error:", e.error);
       }
     };
 
     recognition.onend = () => {
-      if (stateRef.current === "listening" && fallbackRef.current) {
+      // Only auto-restart if still armed, still listening, and recognition wasn't killed by an error
+      if (armedRef.current && stateRef.current === "listening" && fallbackRef.current) {
         try {
           recognition.start();
         } catch {
@@ -223,6 +239,11 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
   }, [resetSilenceTimers]);
 
   const startListening = useCallback(async () => {
+    if (!armedRef.current) {
+      console.warn("[STT] startListening blocked — not armed (no user gesture)");
+      return;
+    }
+
     setError(null);
     setTranscript("");
     setInterimTranscript("");
@@ -236,7 +257,7 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
       } catch (err: any) {
         cleanup();
         if (err?.name === "NotAllowedError" || err?.message?.includes("not-allowed")) {
-          console.error("[STT] Microphone access denied");
+          console.warn("[STT] Microphone access denied");
           setState("error");
           setError("Microphone blocked — allow it in browser site settings");
           return;
@@ -284,6 +305,7 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
     interimTranscript,
     state,
     error,
+    arm,
     startListening,
     stopListening,
     reset,

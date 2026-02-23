@@ -26,6 +26,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/about', label: 'About' },
     { href: '/pitch/select', label: 'Pitch' },
+    { href: '/history', label: 'History' },
   ];
 
   return (
