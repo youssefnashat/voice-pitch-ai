@@ -9,7 +9,7 @@ export default function LoadingScreen() {
   const [isOrbLoaded, setIsOrbLoaded] = useState(false);
 
   useEffect(() => {
-    const duration = 5000; // 5 seconds
+    const duration = 1500; // 1.5 seconds
 
     const redirectTimer = setTimeout(() => {
       router.push('/about');
@@ -102,7 +102,7 @@ export default function LoadingScreen() {
         <motion.div
           initial={{ width: '0%' }}
           animate={{ width: '100%' }}
-          transition={{ duration: 5, ease: 'linear' }}
+          transition={{ duration: 1.5, ease: 'linear' }}
           className="h-full bg-[#00F5FF] shadow-[0_0_10px_rgba(0,245,255,0.5)]"
         />
       </div>

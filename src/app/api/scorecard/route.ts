@@ -5,19 +5,47 @@ import { ScorecardRequest, Scorecard } from "@/types";
 export async function POST(request: NextRequest) {
   try {
     const body: ScorecardRequest = await request.json();
-    const { transcript } = body;
+    const { transcript, history } = body;
 
-    // Format transcript as a readable string
-    const formattedTranscript = transcript
-      .map((entry) => `${entry.speaker}: ${entry.text}`)
-      .join("\n");
+    // Prefer history (the clean, exact text the LLM processed) over raw STT transcript.
+    // History has no interim entries, no garbled low-confidence text, no recovery noise.
+    // Fall back to filtered transcript if history is unavailable.
+    let formattedConversation: string;
+
+    if (history && history.length > 0) {
+      formattedConversation = history
+        .map((entry) =>
+          `${entry.role === "user" ? "Founder" : "Investor"}: ${entry.content}`
+        )
+        .join("\n");
+    } else {
+      // Fallback: strip interim, recovery, and rejected STT entries
+      formattedConversation = transcript
+        .filter(
+          (e) =>
+            !e.isInterim &&
+            !e.recoveryTriggered &&
+            e.wasAccepted !== false
+        )
+        .map((e) =>
+          `${e.speaker === "user" ? "Founder" : "Investor"}: ${e.text}`
+        )
+        .join("\n");
+    }
+
+    if (!formattedConversation.trim()) {
+      return NextResponse.json(
+        { error: "No pitch content to evaluate" },
+        { status: 400 }
+      );
+    }
 
     // Call evaluator agent through Mastra
     const agent = mastra.getAgent("evaluatorAgent");
     const result = await agent.generate([
       {
         role: "user",
-        content: `Evaluate this pitch conversation:\n\n${formattedTranscript}`,
+        content: `Evaluate this startup pitch conversation. Base every score and piece of feedback strictly on what the Founder actually said — do not invent or assume anything.\n\n${formattedConversation}`,
       },
     ] as any);
 

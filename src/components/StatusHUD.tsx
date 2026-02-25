@@ -7,7 +7,7 @@ interface StatusHUDProps {
   phase: Phase;
   elapsedSeconds: number;
   maxSeconds?: number;
-  exchangeCount: number;
+  interest: number;
 }
 
 const PHASE_LABELS: Record<Phase, string> = {
@@ -15,6 +15,7 @@ const PHASE_LABELS: Record<Phase, string> = {
   pitch: "PITCH",
   qa: "Q&A",
   negotiation: "NEGOTIATION",
+  close: "CLOSING",
   scorecard: "DEBRIEF",
 };
 
@@ -24,27 +25,17 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-function getConfidenceLevel(exchangeCount: number, phase: Phase): number {
-  if (phase === "landing") return 0;
-  const base = 35;
-  const perExchange = 15;
-  return Math.min(95, base + exchangeCount * perExchange);
-}
-
-function getInvestorInterest(exchangeCount: number, phase: Phase): number {
-  if (phase === "landing") return 0;
-  if (phase === "pitch") return 20 + Math.random() * 10;
-  if (phase === "qa") return 40 + exchangeCount * 8;
-  if (phase === "negotiation") return 65 + exchangeCount * 5;
-  return 50;
-}
-
-export function StatusHUD({ phase, elapsedSeconds, maxSeconds = 300, exchangeCount }: StatusHUDProps) {
+export function StatusHUD({ phase, elapsedSeconds, maxSeconds = 300, interest }: StatusHUDProps) {
   const timeRemaining = Math.max(0, maxSeconds - elapsedSeconds);
   const timePercent = (timeRemaining / maxSeconds) * 100;
-  const confidence = getConfidenceLevel(exchangeCount, phase);
-  const interest = getInvestorInterest(exchangeCount, phase);
   const isLowTime = timeRemaining < 60;
+  // Interest color: red below 20%, yellow 20–60%, cyan/green above 60%
+  const interestColor =
+    interest < 20
+      ? "linear-gradient(90deg, #FF3B5C, #FF6B7F)"
+      : interest < 60
+      ? "linear-gradient(90deg, #F59E0B, #FCD34D)"
+      : "linear-gradient(90deg, #7B61FF, #00F5FF)";
 
   return (
     <motion.div
@@ -85,28 +76,23 @@ export function StatusHUD({ phase, elapsedSeconds, maxSeconds = 300, exchangeCou
 
       <div className="w-px h-6 bg-border-bright" />
 
-      {/* Confidence */}
-      <div className="flex items-center gap-3">
-        <span className="text-text-muted tracking-widest text-[10px] uppercase">Confidence</span>
-        <span className="text-emerald font-bold tabular-nums">{confidence}%</span>
-      </div>
-
-      <div className="w-px h-6 bg-border-bright" />
-
       {/* Investor Interest */}
       <div className="flex items-center gap-3 min-w-[180px]">
         <span className="text-text-muted tracking-widest text-[10px] uppercase">Interest</span>
         <div className="flex-1 h-1.5 bg-surface-elevated rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
-            style={{
-              background: "linear-gradient(90deg, #7B61FF, #00F5FF)",
-            }}
+            style={{ background: interestColor }}
             animate={{ width: `${interest}%` }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
         </div>
-        <span className="text-purple font-bold tabular-nums text-[10px]">{Math.round(interest)}%</span>
+        <span
+          className="font-bold tabular-nums text-[10px]"
+          style={{ color: interest < 20 ? "#FF3B5C" : interest < 60 ? "#F59E0B" : "#7B61FF" }}
+        >
+          {Math.round(interest)}%
+        </span>
       </div>
     </motion.div>
   );

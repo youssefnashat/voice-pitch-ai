@@ -12,6 +12,7 @@ export function PhaseIndicator({ phase }: PhaseIndicatorProps) {
     pitch: { label: "Your Pitch", color: "bg-blue-500" },
     qa: { label: "Q&A", color: "bg-yellow-500" },
     negotiation: { label: "Negotiation", color: "bg-orange-500" },
+    close: { label: "Closing", color: "bg-purple-500" },
     scorecard: { label: "Scorecard", color: "bg-green-500" },
   };
 

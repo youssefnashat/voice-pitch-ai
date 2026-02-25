@@ -143,7 +143,7 @@ export function YcScorecardModal({
                   style={{ color: overallColor }}
                 >
                   <span className="text-7xl font-bold font-mono">
-                    {scorecard.overall_score}
+                    {scorecard.overall_score.toFixed(1)}
                   </span>
                   <span className="text-2xl text-text-muted font-mono">/10</span>
                 </div>

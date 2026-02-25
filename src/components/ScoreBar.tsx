@@ -12,12 +12,21 @@ export function ScoreBar({ label, score, feedback }: ScoreBarProps) {
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
+    setDisplayScore(0);
+    // Animate from 0 to score in ~1.5s using 0.1 steps
+    const steps = Math.round(score * 10); // e.g. 7.3 → 73 steps
+    const intervalMs = steps > 0 ? Math.round(1500 / steps) : 50;
+    const stepSize = score / steps;
+    let current = 0;
     const interval = setInterval(() => {
-      setDisplayScore((prev) => {
-        if (prev < score) return prev + 1;
-        return prev;
-      });
-    }, 50);
+      current += stepSize;
+      if (current >= score) {
+        setDisplayScore(score);
+        clearInterval(interval);
+      } else {
+        setDisplayScore(Math.round(current * 10) / 10);
+      }
+    }, intervalMs);
 
     return () => clearInterval(interval);
   }, [score]);
@@ -29,7 +38,7 @@ export function ScoreBar({ label, score, feedback }: ScoreBarProps) {
       <div className="flex justify-between items-center">
         <span className="text-sm font-bold text-foreground/80">{label}</span>
         <span className="text-lg font-bold font-mono" style={{ color }}>
-          {displayScore}<span className="text-text-muted text-xs">/10</span>
+          {displayScore.toFixed(1)}<span className="text-text-muted text-xs">/10</span>
         </span>
       </div>
       <div className="w-full bg-surface-elevated rounded-full h-1.5 overflow-hidden">

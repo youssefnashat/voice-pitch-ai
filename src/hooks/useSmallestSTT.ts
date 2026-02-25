@@ -15,6 +15,12 @@ interface UseSmallestSTTReturn {
   stopListening: () => void;
   reset: () => void;
   usingFallback: boolean;
+  /**
+   * Confidence score [0–1] for the current turn.
+   * Tracks the MINIMUM across all final segments (weakest-link).
+   * null = no confidence data received yet this turn (treated as medium by useSession).
+   */
+  lastConfidence: number | null;
 }
 
 function float32ToInt16(float32: Float32Array): Int16Array {
@@ -33,6 +39,13 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
 
+  // null = no confidence data received for this turn yet
+  const [lastConfidence, setLastConfidence] = useState<number | null>(null);
+
+  // Running minimum across all is_final segments in the current turn.
+  // Weakest-link: if any segment was garbled, the whole turn scores low.
+  const turnMinConfidenceRef = useRef<number | null>(null);
+
   // STT only operates after an explicit user gesture calls arm().
   const armedRef = useRef(false);
 
@@ -47,6 +60,20 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
   const fallbackRef = useRef<any>(null);
   const silenceWarningRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const silenceAutoEndRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Reset per-turn confidence tracking. Called at the start of every listening session. */
+  const resetTurnConfidence = useCallback(() => {
+    turnMinConfidenceRef.current = null;
+    setLastConfidence(null);
+  }, []);
+
+  /** Record a new confidence observation — keeps the running minimum. */
+  const observeConfidence = useCallback((conf: number) => {
+    const current = turnMinConfidenceRef.current;
+    const next = current === null ? conf : Math.min(current, conf);
+    turnMinConfidenceRef.current = next;
+    setLastConfidence(next);
+  }, []);
 
   const resetSilenceTimers = useCallback(() => {
     if (silenceWarningRef.current) clearTimeout(silenceWarningRef.current);
@@ -110,8 +137,19 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
       let final = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += t;
-        else interim += t;
+        if (event.results[i].isFinal) {
+          final += t;
+          // Browser SpeechRecognition exposes confidence per result.
+          // Default to 0.7 (medium) when unavailable — never assume perfect.
+          const conf =
+            typeof event.results[i][0].confidence === "number" &&
+            event.results[i][0].confidence > 0
+              ? event.results[i][0].confidence
+              : 0.7;
+          observeConfidence(conf);
+        } else {
+          interim += t;
+        }
       }
       if (final) {
         setTranscript((prev) => (prev + " " + final).trim());
@@ -141,7 +179,6 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
     };
 
     recognition.onend = () => {
-      // Only auto-restart if still armed, still listening, and recognition wasn't killed by an error
       if (armedRef.current && stateRef.current === "listening" && fallbackRef.current) {
         try {
           recognition.start();
@@ -153,7 +190,7 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
 
     fallbackRef.current = recognition;
     return true;
-  }, [resetSilenceTimers]);
+  }, [resetSilenceTimers, observeConfidence]);
 
   const startSmallestSTT = useCallback(async (): Promise<void> => {
     const apiKey = process.env.NEXT_PUBLIC_SMALLEST_API_KEY;
@@ -197,7 +234,7 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN) return;
           const pcm = float32ToInt16(e.inputBuffer.getChannelData(0));
-          ws.send(pcm.buffer);
+          ws.send(pcm.buffer as ArrayBuffer);
         };
 
         source.connect(processor);
@@ -214,6 +251,13 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
             if (data.is_final) {
               setTranscript((prev) => (prev + " " + data.transcript).trim());
               setInterimTranscript("");
+              // Record confidence — use weakest-link accumulation.
+              // If Smallest AI omits confidence, treat the segment as 0.7 (medium).
+              const conf =
+                typeof data.confidence === "number" && data.confidence > 0
+                  ? data.confidence
+                  : 0.7;
+              observeConfidence(conf);
             } else {
               setInterimTranscript(data.transcript);
             }
@@ -230,13 +274,12 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
       };
 
       ws.onclose = () => {
-        // Only reset state if this WS is still the active one (not cleaned up for fallback)
         if (wsRef.current === ws) {
           setState("idle");
         }
       };
     });
-  }, [resetSilenceTimers]);
+  }, [resetSilenceTimers, observeConfidence]);
 
   const startListening = useCallback(async () => {
     if (!armedRef.current) {
@@ -247,6 +290,8 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
     setError(null);
     setTranscript("");
     setInterimTranscript("");
+    // Reset per-turn confidence at the start of every new listening session
+    resetTurnConfidence();
 
     if (VOICE_CONFIG.SMALLEST.ENABLED) {
       try {
@@ -283,7 +328,7 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
       setState("error");
       setError("Speech recognition not supported in this browser");
     }
-  }, [startSmallestSTT, setupFallbackSTT, resetSilenceTimers, cleanup]);
+  }, [startSmallestSTT, setupFallbackSTT, resetSilenceTimers, resetTurnConfidence, cleanup]);
 
   const stopListening = useCallback(() => {
     cleanup();
@@ -296,7 +341,8 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
     setError(null);
     setState("idle");
     setUsingFallback(false);
-  }, []);
+    resetTurnConfidence();
+  }, [resetTurnConfidence]);
 
   useEffect(() => cleanup, [cleanup]);
 
@@ -310,5 +356,6 @@ export function useSmallestSTT(): UseSmallestSTTReturn {
     stopListening,
     reset,
     usingFallback,
+    lastConfidence,
   };
 }

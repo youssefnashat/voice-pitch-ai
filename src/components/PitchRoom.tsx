@@ -97,6 +97,14 @@ export function PitchRoom() {
       setHasProfile(false);
     }
   }, [isLoggedIn]);
+  // Auto-end: investor interest dropped below 20%
+  useEffect(() => {
+    if (session.shouldAutoEnd && !scorecard) {
+      handleEndCall();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.shouldAutoEnd]);
+
   const isProcessing =
     session.sttState === "connecting" || session.ttsState === "synthesizing";
   const isBusy = isProcessing || session.isSpeaking;
@@ -330,7 +338,7 @@ export function PitchRoom() {
           <StatusHUD
             phase={session.phase}
             elapsedSeconds={session.elapsedSeconds}
-            exchangeCount={session.exchangeCount}
+            interest={session.interestLevel}
           />
           <div className="flex gap-2 shrink-0">
             {session.usingFallbackSTT && (

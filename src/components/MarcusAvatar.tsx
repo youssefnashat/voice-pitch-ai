@@ -184,23 +184,23 @@ export function MarcusAvatar({ isSpeaking, isListening, isProcessing }: MarcusAv
                 }
                 strokeWidth={state === "speaking" ? 2.5 : 1.5}
                 strokeLinecap="round"
-                initial={{ x2, y2, opacity: 0.15 }}
+                initial={{ x2: round3(x2), y2: round3(y2), opacity: 0.15 }}
                 animate={
                   state === "speaking"
                     ? {
-                        x2: [px(1), px(1.5 + bar.r1 * 2), px(0.5 + bar.r2), px(1)],
-                        y2: [py(1), py(1.5 + bar.r3 * 2), py(0.5 + bar.r4), py(1)],
+                        x2: [px(1), px(1.5 + bar.r1 * 2), px(0.5 + bar.r2), px(1)].map(round3),
+                        y2: [py(1), py(1.5 + bar.r3 * 2), py(0.5 + bar.r4), py(1)].map(round3),
                         opacity: [0.6, 1, 0.8, 0.6],
                       }
                     : state === "listening"
                     ? {
-                        x2: [px(0.6), px(1.1), px(0.6)],
-                        y2: [py(0.6), py(1.1), py(0.6)],
+                        x2: [px(0.6), px(1.1), px(0.6)].map(round3),
+                        y2: [py(0.6), py(1.1), py(0.6)].map(round3),
                         opacity: [0.3, 0.6, 0.3],
                       }
                     : {
-                        x2: [px(0.7), px(1), px(0.7)],
-                        y2: [py(0.7), py(1), py(0.7)],
+                        x2: [px(0.7), px(1), px(0.7)].map(round3),
+                        y2: [py(0.7), py(1), py(0.7)].map(round3),
                         opacity: [0.15, 0.3, 0.15],
                       }
                 }

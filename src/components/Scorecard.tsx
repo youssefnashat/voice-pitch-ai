@@ -51,7 +51,7 @@ export function Scorecard({ scorecard, onPracticeAgain }: ScorecardProps) {
           className="inline-flex items-baseline justify-center gap-1"
           style={{ color: overallColor }}
         >
-          <span className="text-7xl font-bold font-mono">{scorecard.overall_score}</span>
+          <span className="text-7xl font-bold font-mono">{scorecard.overall_score.toFixed(1)}</span>
           <span className="text-2xl text-text-muted font-mono">/10</span>
         </div>
       </motion.div>

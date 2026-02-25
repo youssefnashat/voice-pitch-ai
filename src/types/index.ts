@@ -1,8 +1,15 @@
 // Data schemas for VoicePitch app
 
-export type Phase = "landing" | "pitch" | "qa" | "negotiation" | "scorecard";
+export type Phase = "landing" | "pitch" | "qa" | "negotiation" | "close" | "scorecard";
 export type Speaker = "user" | "investor";
 export type Role = "user" | "assistant";
+export type ConfidenceTier = "high" | "medium" | "low";
+
+export interface CurrentOffer {
+  valuation: number;
+  checkSize: number;
+  equity: number;
+}
 
 export interface TranscriptEntry {
   id: string;
@@ -10,6 +17,11 @@ export interface TranscriptEntry {
   text: string;
   timestamp: number;
   isInterim?: boolean;
+  // Confidence fields (populated for user entries from STT)
+  confidence?: number;
+  confidenceTier?: ConfidenceTier;
+  wasAccepted?: boolean;
+  recoveryTriggered?: boolean;
 }
 
 export interface ConversationHistory {
@@ -39,6 +51,11 @@ export interface Scorecard {
 export interface ChatRequest {
   userMessage: string;
   history: ConversationHistory[];
+  phase?: Phase;
+  lastPitchTopic?: string;
+  qaExchangeCount?: number;
+  confidenceTier?: ConfidenceTier;
+  currentOffer?: CurrentOffer | null;
 }
 
 export interface ChatResponse {
@@ -48,4 +65,5 @@ export interface ChatResponse {
 
 export interface ScorecardRequest {
   transcript: TranscriptEntry[];
+  history?: ConversationHistory[];
 }
