@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Calendar, Award, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { formatDuration } from "@/lib/utils";
+import { toScore100 } from "@/lib/score";
 
 interface PitchRow {
   id: string;
@@ -76,7 +77,7 @@ function PitchCard({ pitch }: { pitch: PitchRow }) {
             </span>
             <div className="flex items-center gap-1">
               <Award className="w-4 h-4 text-amber-400" />
-              <span className="font-bold text-cyan-400">{pitch.overall_score}/10</span>
+              <span className="font-bold text-cyan-400">{toScore100(pitch.overall_score)}/100</span>
             </div>
             <span className="font-mono text-xs text-text-muted">
               {formatDuration(pitch.duration_seconds)}

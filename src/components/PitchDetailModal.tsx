@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Clock, User, Award, FileText } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
+import { toScore100 } from "@/lib/score";
 
 const AGENT_NAMES: Record<string, string> = {
   marcus: "Marcus Chen",
@@ -149,7 +150,7 @@ export function PitchDetailModal({ pitchId, onClose }: PitchDetailModalProps) {
                       <Award size={18} className="text-cyan-400 shrink-0" />
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-gray-400">Score</p>
-                        <p className="font-bold text-cyan-400">{pitch.overall_score}</p>
+                        <p className="font-bold text-cyan-400">{toScore100(pitch.overall_score)}/100</p>
                       </div>
                     </div>
                   </div>
@@ -169,7 +170,7 @@ export function PitchDetailModal({ pitchId, onClose }: PitchDetailModalProps) {
                               <span className="text-sm font-medium text-white">
                                 {dimensionLabels[key] || key}
                               </span>
-                              <span className="font-mono text-cyan-400 font-bold">{dim.score ?? "—"}</span>
+                              <span className="font-mono text-cyan-400 font-bold">{dim.score != null ? toScore100(dim.score) : "—"}</span>
                             </div>
                             {dim.feedback && (
                               <p className="text-xs text-gray-400 mt-1">{dim.feedback}</p>

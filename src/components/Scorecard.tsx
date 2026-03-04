@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Scorecard as ScorecardType } from "@/types";
+import { toScore100 } from "@/lib/score";
 import { ScoreBar } from "./ScoreBar";
 
 interface ScorecardProps {
@@ -51,8 +52,8 @@ export function Scorecard({ scorecard, onPracticeAgain }: ScorecardProps) {
           className="inline-flex items-baseline justify-center gap-1"
           style={{ color: overallColor }}
         >
-          <span className="text-7xl font-bold font-mono">{scorecard.overall_score.toFixed(1)}</span>
-          <span className="text-2xl text-text-muted font-mono">/10</span>
+          <span className="text-7xl font-bold font-mono">{toScore100(scorecard.overall_score)}</span>
+          <span className="text-2xl text-text-muted font-mono">/100</span>
         </div>
       </motion.div>
 

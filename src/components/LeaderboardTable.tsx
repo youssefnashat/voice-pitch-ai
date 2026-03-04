@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Eye, Loader2 } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
+import { toScore100 } from '@/lib/score';
 import { PitchDetailModal } from './PitchDetailModal';
 
 interface PitchRow {
@@ -132,11 +133,11 @@ export default function LeaderboardTable({ currentUserName }: { currentUserName?
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-cyan-400 font-bold text-lg">{row.overall_score}</span>
+                      <span className="text-cyan-400 font-bold text-lg">{toScore100(row.overall_score)}</span>
                       <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-cyan-400 to-purple-500"
-                          style={{ width: `${row.overall_score}%` }}
+                          style={{ width: `${toScore100(row.overall_score)}%` }}
                         />
                       </div>
                     </div>

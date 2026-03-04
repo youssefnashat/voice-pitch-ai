@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toScore100 } from "@/lib/score";
 
 interface ScoreBarProps {
   label: string;
@@ -38,14 +39,14 @@ export function ScoreBar({ label, score, feedback }: ScoreBarProps) {
       <div className="flex justify-between items-center">
         <span className="text-sm font-bold text-foreground/80">{label}</span>
         <span className="text-lg font-bold font-mono" style={{ color }}>
-          {displayScore.toFixed(1)}<span className="text-text-muted text-xs">/10</span>
+          {toScore100(displayScore)}<span className="text-text-muted text-xs">/100</span>
         </span>
       </div>
       <div className="w-full bg-surface-elevated rounded-full h-1.5 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
-            width: `${(displayScore / 10) * 100}%`,
+            width: `${toScore100(displayScore)}%`,
             background: `linear-gradient(90deg, ${color}88, ${color})`,
           }}
         />

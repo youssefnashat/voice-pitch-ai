@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import Link from "next/link";
+import { toScore100 } from "@/lib/score";
 
 interface Stats {
   totalPitches: number;
@@ -49,7 +50,7 @@ export default function LeaderboardPageClient({
   const statsDisplay = stats
     ? [
         { label: "Total Pitches", value: stats.totalPitches.toLocaleString() },
-        { label: "Top Score", value: `${stats.topScore}/10` },
+        { label: "Top Score", value: `${toScore100(stats.topScore)}/100` },
         { label: "Active Users", value: stats.activeUsers.toLocaleString() },
       ]
     : [

@@ -144,13 +144,14 @@ export function PitchRoom() {
 
   const buildPublishPayload = useCallback(() => {
     if (!scorecard) return null;
+    const scoreInt = Math.round(Number(scorecard.overall_score ?? 0));
     const transcriptForStorage = session.transcript.map((e) => ({
       speaker: e.speaker,
       text: e.text,
     }));
     return {
       agent: agentId,
-      overall_score: scorecard.overall_score,
+      overall_score: scoreInt,
       dimensions: scorecard.dimensions ?? {},
       top_weakness: scorecard.top_weakness ?? null,
       rewritten_opener: scorecard.rewritten_opener ?? null,

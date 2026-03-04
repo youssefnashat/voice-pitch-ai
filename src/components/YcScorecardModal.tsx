@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { X, Upload, LogIn, CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import { Scorecard as ScorecardType } from "@/types";
+import { toScore100 } from "@/lib/score";
 import { ScoreBar } from "./ScoreBar";
 
 export type PublishState = "idle" | "publishing" | "published" | "error";
@@ -143,9 +144,9 @@ export function YcScorecardModal({
                   style={{ color: overallColor }}
                 >
                   <span className="text-7xl font-bold font-mono">
-                    {scorecard.overall_score.toFixed(1)}
+                    {toScore100(scorecard.overall_score)}
                   </span>
-                  <span className="text-2xl text-text-muted font-mono">/10</span>
+                  <span className="text-2xl text-text-muted font-mono">/100</span>
                 </div>
               </motion.div>
 
